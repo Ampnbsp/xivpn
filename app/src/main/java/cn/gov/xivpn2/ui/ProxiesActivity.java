@@ -76,7 +76,7 @@ public class ProxiesActivity extends AppCompatActivity {
             PopupMenu popupMenu = new PopupMenu(this, view);
             popupMenu.inflate(R.menu.proxies_popup);
             popupMenu.setOnMenuItemClickListener(item -> {
-                if (item.getItemId() == R.id.delete) {
+                if (item.getItemId() == R.id.delete_confirm) {
 
                     // delete
                     AppDatabase.getInstance().proxyDao().delete(proxy.label, proxy.subscription);
@@ -189,6 +189,8 @@ public class ProxiesActivity extends AppCompatActivity {
             this.finish();
             return true;
         } else if (item.getItemId() == R.id.from_clipboard) {
+
+            // import from clipboard
 
             View view = LayoutInflater.from(this).inflate(R.layout.edit_text, null);
             TextInputEditText editText2 = view.findViewById(R.id.edit_text);
