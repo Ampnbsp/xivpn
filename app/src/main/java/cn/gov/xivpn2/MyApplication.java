@@ -17,8 +17,6 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 
@@ -38,9 +36,7 @@ public class MyApplication extends Application {
         Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
             Log.e("CRASH", "uncaught exception handler", throwable);
 
-            StringWriter sw = new StringWriter();
-            throwable.printStackTrace(new PrintWriter(sw));
-            String exceptionAsString = sw.toString();
+            String exceptionAsString = Utils.getExceptionString(throwable);
 
             Intent intent = new Intent(this, CrashActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

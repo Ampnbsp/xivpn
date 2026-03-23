@@ -8,4 +8,8 @@ public class BadShareLinkException extends Exception {
     public BadShareLinkException(Exception e) {
         super(e);
     }
+
+    public BadShareLinkException(String message, Exception e) {
+        super(message, e);
+    }
 }

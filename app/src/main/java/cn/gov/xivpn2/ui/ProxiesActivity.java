@@ -28,6 +28,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
@@ -200,18 +201,24 @@ public class ProxiesActivity extends AppCompatActivity {
                     .setView(view)
                     .setPositiveButton(R.string.ok, (dialog, which) -> {
 
-                        String s = editText2.getText().toString();
+                        String s = Objects.requireNonNull(editText2.getText()).toString();
                         if (s.isEmpty()) {
                             return;
                         }
 
-                        if (!SubscriptionWork.parseLine(s, "none")) {
-                            Toast.makeText(this, R.string.invalid_link, Toast.LENGTH_SHORT).show();
-                        } else {
+                        try {
+                            SubscriptionWork.parseLine(s, "none");
                             Toast.makeText(this, R.string.proxy_added, Toast.LENGTH_SHORT).show();
-
                             XiVPNService.markConfigStale(this);
                             refresh();
+                        } catch (Exception e) {
+                            Log.e("ProxiesActivity", "parse line", e);
+
+                            new AlertDialog.Builder(this)
+                                    .setTitle(R.string.invalid_link)
+                                    .setMessage(e.getMessage())
+                                    .setPositiveButton(R.string.ok, null)
+                                    .show();
                         }
 
                     }).show();
@@ -276,6 +283,9 @@ public class ProxiesActivity extends AppCompatActivity {
                     .show();
             return true;
 
+        } else if (item.getItemId() == R.id.qrcode) {
+            startActivity(new Intent(this, QRScanActivity.class));
+            return true;
         }
 
         return super.onOptionsItemSelected(item);

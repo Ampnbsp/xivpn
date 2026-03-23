@@ -1,5 +1,9 @@
 package cn.gov.xivpn2.service.sharelink;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Objects;
+
 import cn.gov.xivpn2.database.Proxy;
 
 
@@ -35,7 +39,14 @@ public class ShareLinkRegistry {
             return shadowsocks.parse(uri);
         }
 
-        throw new BadShareLinkException("share link not supported");
+        try {
+            URI parsed = new URI(uri);
+            String scheme = Objects.requireNonNullElse(parsed.getScheme(), "null");
+            throw new BadShareLinkException("scheme " + scheme + " is not supported");
+        } catch (URISyntaxException e) {
+            throw new BadShareLinkException("Malformatted URI", e);
+        }
+
     }
 
     /**

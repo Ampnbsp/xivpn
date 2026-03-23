@@ -4,6 +4,8 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -59,6 +61,12 @@ public class Utils {
         zip.write(bytes);
 
         zip.closeEntry();
+    }
+
+    public static String getExceptionString(Throwable throwable) {
+        StringWriter sw = new StringWriter();
+        throwable.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
     }
 
     public static final TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {

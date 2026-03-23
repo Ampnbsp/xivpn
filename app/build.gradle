@@ -111,13 +111,21 @@ dependencies {
     implementation libs.material
     implementation libs.activity
     implementation libs.constraintlayout
-    testImplementation libs.junit
-    androidTestImplementation libs.ext.junit
-    androidTestImplementation libs.espresso.core
     implementation libs.work.runtime
     implementation libs.okhttp
     implementation libs.preference
     implementation libs.commons.io
     implementation libs.recyclerview
     implementation libs.commons.collections4
+    implementation libs.camera.core
+    implementation libs.androidx.camera.view
+    implementation libs.androidx.camera.lifecycle
+    implementation libs.androidx.camera.camera2
+    implementation libs.barcode.scanning
+
+
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+
 }

@@ -33,6 +33,7 @@ import cn.gov.xivpn2.database.AppDatabase;
 import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.database.Subscription;
+import cn.gov.xivpn2.service.sharelink.BadShareLinkException;
 import cn.gov.xivpn2.service.sharelink.MarshalProxyException;
 import cn.gov.xivpn2.service.sharelink.ShareLinkRegistry;
 import cn.gov.xivpn2.ui.CrashLogActivity;
@@ -194,21 +195,19 @@ public class SubscriptionWork extends Worker {
             line = line.replace(" ", "%20").replace("|", "%7c");
             Log.i(TAG, "parse " + line);
 
-            parseLine(line, label);
+            try {
+                parseLine(line, label);
+            } catch (Exception e) {
+                Log.e(TAG, "line: " + line);
+                Log.e(TAG, "parse line", e);
+            }
         }
     }
 
-    public static boolean parseLine(String line, String subscription) {
-        Proxy proxy;
+    public static void parseLine(String line, String subscription) throws BadShareLinkException {
+        Proxy proxy = ShareLinkRegistry.parse(line);
 
-        try {
-            proxy = ShareLinkRegistry.parse(line);
-        } catch (Exception e) {
-            Log.e(TAG, "parse " + subscription + " " + line, e);
-            return false;
-        }
-
-        if (proxy == null) return false;
+        if (proxy == null) return;
 
         proxy.subscription = subscription;
 
@@ -228,7 +227,6 @@ public class SubscriptionWork extends Worker {
         }
         AppDatabase.getInstance().proxyDao().add(proxy);
 
-        return true;
     }
 
 
