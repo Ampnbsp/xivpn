@@ -8,6 +8,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
@@ -20,7 +21,6 @@ public class ProxiesAdapter extends RecyclerView.Adapter<ProxiesAdapter.ViewHold
 
     private final ArrayList<Proxy> proxies;
     private Listener onClickListener;
-    private Listener onLongClickListener;
     private int checked = -1;
 
     public ProxiesAdapter() {
@@ -31,9 +31,6 @@ public class ProxiesAdapter extends RecyclerView.Adapter<ProxiesAdapter.ViewHold
         this.onClickListener = listener;
     }
 
-    public void setOnLongClickListener(Listener listener) {
-        this.onLongClickListener = listener;
-    }
 
     @NonNull
     @Override
@@ -59,26 +56,57 @@ public class ProxiesAdapter extends RecyclerView.Adapter<ProxiesAdapter.ViewHold
         Proxy proxy = proxies.get(position);
         holder.getLabel().setText(proxy.label);
         holder.getProtocol().setText(proxy.protocol.toUpperCase());
-        holder.getPing().setText("");
+
         if (proxy.subscription.equals("none")) {
             holder.getSubscription().setText("");
         } else {
             holder.getSubscription().setText(proxy.subscription);
         }
+
+        if (proxy.protocol.equals("freedom") || proxy.protocol.equals("blackhole") || proxy.protocol.equals("dns")) {
+            holder.getEdit().setVisibility(View.GONE);
+            holder.getShare().setVisibility(View.GONE);
+            holder.getDelete().setVisibility(View.GONE);
+        } else {
+            holder.getEdit().setVisibility(View.VISIBLE);
+            holder.getShare().setVisibility(View.VISIBLE);
+            holder.getDelete().setVisibility(View.VISIBLE);
+        }
+
         holder.getItemView().setOnClickListener(v -> {
             if (this.onClickListener != null) {
                 this.onClickListener.onClick(v, proxy, position);
             }
         });
+
         holder.getItemView().setOnLongClickListener(v -> {
-            if (this.onLongClickListener != null) {
-                this.onLongClickListener.onClick(v, proxy, position);
+            if (this.onClickListener != null) {
+                this.onClickListener.onLongClick(v, proxy, position);
                 return true;
             }
             return false;
         });
+
         holder.getCard().setCheckable(true);
         holder.getCard().setChecked(checked == position);
+
+        holder.getDelete().setOnClickListener(v -> {
+            if (this.onClickListener != null) {
+                this.onClickListener.onDelete(v, proxy, position);
+            }
+        });
+
+        holder.getEdit().setOnClickListener(v -> {
+            if (this.onClickListener != null) {
+                this.onClickListener.onEdit(v, proxy, position);
+            }
+        });
+
+        holder.getShare().setOnClickListener(v -> {
+            if (this.onClickListener != null) {
+                this.onClickListener.onShare(v, proxy, position);
+            }
+        });
     }
 
     public void setChecked(String label, String subscription) {
@@ -99,14 +127,20 @@ public class ProxiesAdapter extends RecyclerView.Adapter<ProxiesAdapter.ViewHold
 
     public interface Listener {
         void onClick(View v, Proxy proxy, int i);
+        void onLongClick(View v, Proxy proxy, int i);
+        void onDelete(View v, Proxy proxy, int i);
+        void onShare(View v, Proxy proxy, int i);
+        void onEdit(View v, Proxy proxy, int i);
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         private final TextView label;
         private final TextView protocol;
         private final TextView subscription;
-        private final TextView ping;
         private final View itemView;
+        private final MaterialButton edit;
+        private final MaterialButton share;
+        private final MaterialButton delete;
         private final MaterialCardView card;
 
         public ViewHolder(@NonNull View itemView) {
@@ -114,18 +148,18 @@ public class ProxiesAdapter extends RecyclerView.Adapter<ProxiesAdapter.ViewHold
             this.itemView = itemView;
             label = itemView.findViewById(R.id.label);
             protocol = itemView.findViewById(R.id.protocol);
-            ping = itemView.findViewById(R.id.ping);
             subscription = itemView.findViewById(R.id.subscription);
             card = itemView.findViewById(R.id.card);
+            edit = itemView.findViewById(R.id.edit);
+            share = itemView.findViewById(R.id.share);
+            delete = itemView.findViewById(R.id.delete);
+
         }
 
         public TextView getLabel() {
             return label;
         }
 
-        public TextView getPing() {
-            return ping;
-        }
 
         public TextView getProtocol() {
             return protocol;
@@ -141,6 +175,18 @@ public class ProxiesAdapter extends RecyclerView.Adapter<ProxiesAdapter.ViewHold
 
         public MaterialCardView getCard() {
             return card;
+        }
+
+        public MaterialButton getDelete() {
+            return delete;
+        }
+
+        public MaterialButton getEdit() {
+            return edit;
+        }
+
+        public MaterialButton getShare() {
+            return share;
         }
     }
 }

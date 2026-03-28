@@ -5,19 +5,21 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.PopupMenu;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -26,12 +28,17 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 import java.io.IOException;
 import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
+import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.SubscriptionWork;
 import cn.gov.xivpn2.service.XiVPNService;
@@ -68,100 +75,137 @@ public class ProxiesActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         // on list item clicked
-        adapter.setOnLongClickListener((view, proxy, i) -> {
-            if (proxy.protocol.equals("freedom") || proxy.protocol.equals("blackhole") || proxy.protocol.equals("dns")) {
-                // freedom / blackhole / dns is not removable and editable
-                return;
+
+        adapter.setOnClickListener(new ProxiesAdapter.Listener() {
+            @Override
+            public void onClick(View v, Proxy proxy, int i) {
+                if (proxy.protocol.equals("dns")) return; // dns can not be the default outbound
+
+                SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
+                Rules.setCatchAll(sp, proxy.label, proxy.subscription);
+                adapter.setChecked(proxy.label, proxy.subscription);
+
+                XiVPNService.markConfigStale(ProxiesActivity.this);
             }
 
-            PopupMenu popupMenu = new PopupMenu(this, view);
-            popupMenu.inflate(R.menu.proxies_popup);
-            popupMenu.setOnMenuItemClickListener(item -> {
-                if (item.getItemId() == R.id.delete_confirm) {
+            @Override
+            public void onLongClick(View v, Proxy proxy, int i) {
 
-                    // delete
-                    AppDatabase.getInstance().proxyDao().delete(proxy.label, proxy.subscription);
+            }
 
-                    try {
-                        Rules.resetDeletedProxies(getSharedPreferences("XIVPN", MODE_PRIVATE), getApplicationContext().getFilesDir());
-                    } catch (IOException e) {
-                        Log.e("ProxiesActivity", "reset deleted proxies", e);
-                    }
+            @Override
+            public void onDelete(View v, Proxy proxy, int i) {
+                new AlertDialog.Builder(ProxiesActivity.this)
+                        .setTitle(R.string.warning)
+                        .setMessage(R.string.delete_confirm)
+                        .setPositiveButton(R.string.ok, (dialog, which) -> {
+                            AppDatabase.getInstance().proxyDao().delete(proxy.label, proxy.subscription);
 
-                    XiVPNService.markConfigStale(this);
+                            try {
+                                Rules.resetDeletedProxies(getSharedPreferences("XIVPN", MODE_PRIVATE), getApplicationContext().getFilesDir());
+                            } catch (IOException e) {
+                                Log.e("ProxiesActivity", "reset deleted proxies", e);
+                            }
 
-                    refresh();
+                            XiVPNService.markConfigStale(ProxiesActivity.this);
 
-                } else if (item.getItemId() == R.id.edit) {
-                    // edit
-                    Class<? extends AppCompatActivity> cls = null;
-                    switch (proxy.protocol) {
-                        case "shadowsocks":
-                            cls = ShadowsocksActivity.class;
-                            break;
-                        case "vmess":
-                            cls = VmessActivity.class;
-                            break;
-                        case "vless":
-                            cls = VlessActivity.class;
-                            break;
-                        case "trojan":
-                            cls = TrojanActivity.class;
-                            break;
-                        case "wireguard":
-                            cls = WireguardActivity.class;
-                            break;
-                        case "proxy-chain":
-                            cls = ProxyChainActivity.class;
-                            break;
-                        case "proxy-group":
-                            cls = ProxyGroupActivity.class;
-                            break;
-                        case "http":
-                            cls = HttpActivity.class;
-                            break;
-                        case "socks":
-                            cls = Socks5Activity.class;
-                            break;
-                        case "hysteria":
-                            cls = HysteriaActivity.class;
-                            break;
-                    }
+                            refresh();
+                        })
+                        .setNegativeButton(R.string.cancel, null)
+                        .show();
 
-                    if (cls != null) {
-                        Intent intent = new Intent(this, cls);
-                        intent.putExtra("LABEL", proxy.label);
-                        intent.putExtra("SUBSCRIPTION", proxy.subscription);
-                        intent.putExtra("CONFIG", proxy.config);
-                        startActivity(intent);
-                    }
+            }
 
-                } else if (item.getItemId() == R.id.copy_share_link) {
-                    String link;
-                    try {
-                        link = SubscriptionWork.marshalProxy(proxy);
-                    } catch (MarshalProxyException e) {
-                        Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                        return true;
-                    }
+            @Override
+            public void onShare(View v, Proxy proxy, int i) {
 
-                    ClipboardManager clipboardManager = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
-                    clipboardManager.setPrimaryClip(ClipData.newPlainText("", link));
+                String link;
+                try {
+                    link = SubscriptionWork.marshalProxy(proxy);
+                } catch (MarshalProxyException e) {
+                    Toast.makeText(ProxiesActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    return;
                 }
 
-                return true;
-            });
-            popupMenu.show();
-        });
+                Bitmap bmp = null;
+                try {
 
-        adapter.setOnClickListener((view, proxy, i) -> {
-            if (proxy.protocol.equals("dns")) return; // dns can not be the default outbound
+                    QRCodeWriter writer = new QRCodeWriter();
+                    BitMatrix bitMatrix = writer.encode(link, BarcodeFormat.QR_CODE, 512, 512);
+                    int width = bitMatrix.getWidth();
+                    int height = bitMatrix.getHeight();
+                    bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+                    for (int x = 0; x < width; x++) {
+                        for (int y = 0; y < height; y++) {
+                            bmp.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                        }
+                    }
 
-            SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
-            Rules.setCatchAll(sp, proxy.label, proxy.subscription);
-            adapter.setChecked(proxy.label, proxy.subscription);
+                } catch (WriterException e) {
+                    Log.e("ProxiesActivity", "could not generate qr code", e);
+                    return;
+                }
 
-            XiVPNService.markConfigStale(this);
+                ImageView imageView = new ImageView(ProxiesActivity.this);
+                imageView.setImageBitmap(bmp);
+
+                new AlertDialog.Builder(ProxiesActivity.this)
+                        .setTitle(R.string.share)
+                        .setView(imageView)
+                        .setPositiveButton(R.string.copy_share_link, (dialog, which) -> {
+
+                            ClipboardManager clipboardManager = (ClipboardManager) ProxiesActivity.this.getSystemService(Context.CLIPBOARD_SERVICE);
+                            clipboardManager.setPrimaryClip(ClipData.newPlainText("", link));
+
+                        })
+                        .show();
+
+            }
+
+            @Override
+            public void onEdit(View v, Proxy proxy, int i) {
+                Class<? extends AppCompatActivity> cls = null;
+                switch (proxy.protocol) {
+                    case "shadowsocks":
+                        cls = ShadowsocksActivity.class;
+                        break;
+                    case "vmess":
+                        cls = VmessActivity.class;
+                        break;
+                    case "vless":
+                        cls = VlessActivity.class;
+                        break;
+                    case "trojan":
+                        cls = TrojanActivity.class;
+                        break;
+                    case "wireguard":
+                        cls = WireguardActivity.class;
+                        break;
+                    case "proxy-chain":
+                        cls = ProxyChainActivity.class;
+                        break;
+                    case "proxy-group":
+                        cls = ProxyGroupActivity.class;
+                        break;
+                    case "http":
+                        cls = HttpActivity.class;
+                        break;
+                    case "socks":
+                        cls = Socks5Activity.class;
+                        break;
+                    case "hysteria":
+                        cls = HysteriaActivity.class;
+                        break;
+                }
+
+                if (cls != null) {
+                    Intent intent = new Intent(ProxiesActivity.this, cls);
+                    intent.putExtra("LABEL", proxy.label);
+                    intent.putExtra("SUBSCRIPTION", proxy.subscription);
+                    intent.putExtra("CONFIG", proxy.config);
+                    startActivity(intent);
+                }
+            }
         });
 
     }

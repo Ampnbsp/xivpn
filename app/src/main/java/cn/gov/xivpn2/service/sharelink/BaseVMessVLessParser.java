@@ -2,8 +2,6 @@ package cn.gov.xivpn2.service.sharelink;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
@@ -41,7 +39,8 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
 
     protected static String quote(String s) {
         try {
-            return URLEncoder.encode(s, "UTF-8");
+            // same as v2rayng
+            return URLEncoder.encode(s, "UTF-8").replace("+", "%20");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
@@ -58,7 +57,7 @@ public abstract class BaseVMessVLessParser implements ShareLinkParser {
             if (idx < 0) continue;
             queryPairs.put(
                     URLDecoder.decode(pair.substring(0, idx), "UTF-8"),
-                    URLDecoder.decode(pair.substring(idx + 1), "UTF-8")
+                    URLDecoder.decode(pair.substring(idx + 1).replace("+", "%2B"), "UTF-8")
             );
         }
         return queryPairs;

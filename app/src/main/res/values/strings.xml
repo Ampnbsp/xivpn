@@ -151,8 +151,9 @@
     <string name="subscription_no_verify">Ignore certificate verification</string>
     <string name="subscription_no_verify_summary">Disable SSL certificate verification when updating subscriptions (insecure!)</string>
     <string name="click_for_details">Click for details</string>
-    <string name="delete_confirm">Confirm delete</string>
+    <string name="delete_confirm">Are you sure you want to delete?</string>
     <string name="qrcode_scan">QR Code Scan</string>
     <string name="import_from_qrcode">Import from QR code</string>
     <string name="no_camera_permission">Camera permission is not granted</string>
+    <string name="share">Share</string>
 </resources>
