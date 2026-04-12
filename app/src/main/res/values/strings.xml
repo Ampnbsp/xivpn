@@ -158,4 +158,8 @@
     <string name="share">Share</string>
     <string name="applications">Applications</string>
     <string name="rule_app_help">Match traffic by originating app</string>
+    <string name="already_updating_geo_assets">A background task downloading geo databases is currently running.</string>
+    <string name="not_found">Not found</string>
+    <string name="downloading">Downloading</string>
+    <string name="download_success">Downloaded successfully</string>
 </resources>
