@@ -563,7 +563,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
                         } catch (SecurityException | IllegalArgumentException | UnsupportedOperationException e) {
                             Log.e(TAG, "getConnectionOwnerUid failed", e);
 
-                            ipcWriter.write("find_process_resp unknown\n".getBytes(StandardCharsets.US_ASCII));
+                            ipcWriter.write("find_process_resp -1\n".getBytes(StandardCharsets.US_ASCII));
                             ipcWriter.flush();
                         }
 
@@ -747,6 +747,29 @@ public class XiVPNService extends VpnService implements SocketProtect {
             config.routing = new Routing();
             config.routing.rules = rules;
 
+            // leak protection
+
+            if (preferences.getBoolean("leak_protection", false)) {
+                // How this works:
+                //
+                // getConnectionOwnerUid returns -1 if:
+                // - The connection owner app is not using a VPN, OR
+                // - The connection owner app is using a VPN other than Xi VPN.
+                //
+                // Consequently, we can reject all connections for which we could not retrieve
+                // the owner UID, as they are not intended to be proxied by Xi VPN anyway.
+                //
+                // See https://cs.android.com/android/platform/superproject/+/android-latest-release:packages/modules/Connectivity/service/src/com/android/server/ConnectivityService.java;drc=c4fea9d31ce3a97a0b87e7fb69835e100bb27e89;l=13764
+
+                RoutingRule leakProtectionRule = new RoutingRule();
+                leakProtectionRule.process = List.of("-1");
+                leakProtectionRule.network = "tcp,udp";
+                leakProtectionRule.outboundLabel = "Block";
+                leakProtectionRule.outboundSubscription = "none";
+                rules.add(0, leakProtectionRule);
+            }
+
+
             // outbound
             HashSet<Long> proxyIds = new HashSet<>();
 
@@ -756,15 +779,22 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 proxyIds.add(id);
 
                 rule.outboundTag = String.format(Locale.ROOT, "#%d %s (%s)", id, rule.outboundLabel, rule.outboundSubscription);
-                if (rule.domain.isEmpty()) rule.domain = null;
-                if (rule.ip.isEmpty()) rule.ip = null;
-                if (rule.port.isEmpty()) rule.port = null;
-                if (rule.protocol.isEmpty()) rule.protocol = null;
+                if (rule.domain != null && rule.domain.isEmpty()) rule.domain = null;
+                if (rule.ip != null && rule.ip.isEmpty()) rule.ip = null;
+                if (rule.port != null && rule.port.isEmpty()) rule.port = null;
+                if (rule.protocol != null && rule.protocol.isEmpty()) rule.protocol = null;
+                if (rule.process != null && rule.process.isEmpty()) rule.process = null;
 
                 // resolve package names to UIDs for per-app routing
-                if (rule.process != null && !rule.process.isEmpty()) {
+                if (rule.process != null) {
                     List<String> uids = new ArrayList<>();
                     for (String pkg : rule.process) {
+
+                        if ("-1".equals(pkg)) {
+                            uids.add("-1");
+                            continue;
+                        }
+
                         try {
                             int uid = getPackageManager().getPackageUid(pkg, 0);
                             uids.add(String.valueOf(uid));

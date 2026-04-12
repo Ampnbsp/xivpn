@@ -162,4 +162,6 @@
     <string name="not_found">Not found</string>
     <string name="downloading">Downloading</string>
     <string name="download_success">Downloaded successfully</string>
+    <string name="leak_protection">Leak protection</string>
+    <string name="leak_protection_summary">Prevent apps excluded by Split Tunnel or apps from different profiles to bind to the VPN interface. (Requires Android 10+, experimental)</string>
 </resources>
