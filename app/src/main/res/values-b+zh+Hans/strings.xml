@@ -124,6 +124,7 @@
     <string name="protocol_unsupported">暂不支持协议 "%1$s"</string>
     <string name="proxy_chain_help">链式代理允许你将多个代理服务器串联起来。列表中的第一个服务器是入口服务器，最后一个服务器是出口服务器。之间的所有服务器都是中继服务器（类似 Tor 的多跳）。</string>
     <string name="proxy_group">代理组</string>
+    <string name="proxy_group_help">您可以将服务器分组，并在配置中使用这些组（例如，你可以选择一个代理组来作为规则的出战，默认出战，或链式代理）。  构建 Xray 配置时，代理组将被每当前选定的服务器替换。您可以在首页上更改选定的服务器。  组也可以包含其他组，但不允许循环引用（即一个组间接包含自身）。</string>
     <string name="proxy_group_cycle">代理组中出现回环：</string>
     <string name="proxy_group_empty">代理组不能为空：</string>
     <string name="proxy_group_not_found">代理组 \"%s\": 代理 \"%s\" 不存在</string>
@@ -138,4 +139,26 @@
     <string name="restore_error">还原失败：</string>
     <string name="restore_finished">还原完成</string>
     <string name="proxies_help">选择默认出站。会处理所有未匹配规则的流量。</string>
+    <string name="unsaved_changes">你有未保存的更改</string>
+    <string name="cancel">取消</string>
+    <string name="discard_changes">放弃更改</string>
+    <string name="ipv6">IPv6</string>
+    <string name="ipv6_summary">将 IPv6 地址添加到路由和 VPN 网卡</string>
+    <string name="geoip_geosite_summary">下载 GEOIP 和 GEOSITE 数据库</string>
+    <string name="subscription_no_verify">不验证 SSL 证书</string>
+    <string name="subscription_no_verify_summary">在更新订阅时不验证 SSL 证书（不安全！）</string>
+    <string name="click_for_details">点击查看详情</string>
+    <string name="delete_confirm">你真的要删除吗？</string>
+    <string name="qrcode_scan">扫描二维码</string>
+    <string name="import_from_qrcode">从二维码导入</string>
+    <string name="no_camera_permission">未授权相机权限</string>
+    <string name="share">分享</string>
+    <string name="applications">应用程序</string>
+    <string name="rule_app_help">按来源应用匹配流量</string>
+    <string name="already_updating_geo_assets">已经有一个下载任务在执行了</string>
+    <string name="not_found">不存在</string>
+    <string name="downloading">下载中</string>
+    <string name="download_success">下载成功</string>
+    <string name="leak_protection">防泄漏</string>
+    <string name="leak_protection_summary">阻止 Split Tunnel 排除的应用或来自不同配置文件的应用使用 VPN 接口。（需要 Android 10 及以上版本，实验性功能）</string>
 </resources>
