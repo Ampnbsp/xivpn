@@ -70,10 +70,14 @@
             android:title="@string/split_tunnel_apps"
             app:key="split_tunnel_apps" />
 
-        <CheckBoxPreference
-            app:key="leak_protection"
-            app:iconSpaceReserved="false"
+
+        <ListPreference
+            android:defaultValue="Disabled"
+            android:entries="@array/leak_protection_modes"
+            android:entryValues="@array/leak_protection_modes_value"
             android:title="@string/leak_protection"
+            app:iconSpaceReserved="false"
+            app:key="leak_protection_mode"
             app:summary="@string/leak_protection_summary" />
 
     </PreferenceCategory>

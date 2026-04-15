@@ -749,7 +749,10 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
             // leak protection
 
-            if (preferences.getBoolean("leak_protection", false)) {
+            String leakProtectionMode = preferences.getString("leak_protection_mode", "Disabled");
+
+            Log.d(TAG, "leak protection mode " + leakProtectionMode);
+            if (!"Disabled".equals(leakProtectionMode)) {
                 // How this works:
                 //
                 // getConnectionOwnerUid returns -1 if:
@@ -764,8 +767,15 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 RoutingRule leakProtectionRule = new RoutingRule();
                 leakProtectionRule.process = List.of("-1");
                 leakProtectionRule.network = "tcp,udp";
-                leakProtectionRule.outboundLabel = "Block";
-                leakProtectionRule.outboundSubscription = "none";
+
+                if ("Block".equals(leakProtectionMode)) {
+                    leakProtectionRule.outboundLabel = "Block";
+                    leakProtectionRule.outboundSubscription = "none";
+                } if ("Direct".equals(leakProtectionMode)) {
+                    leakProtectionRule.outboundLabel = "No Proxy (Bypass Mode)";
+                    leakProtectionRule.outboundSubscription = "none";
+                }
+
                 rules.add(0, leakProtectionRule);
             }
 

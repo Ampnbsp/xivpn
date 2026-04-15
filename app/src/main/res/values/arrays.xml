@@ -10,6 +10,16 @@
         <item>Whitelist</item>
         <item>Blacklist</item>
     </string-array>
+    <string-array name="leak_protection_modes">
+        <item>Disabled: Apps are free to send traffic through the VPN interface</item>
+        <item>Block: Connections bound to the VPN interface are rejected</item>
+        <item>Direct: Connections bound to the VPN interface bypass XiVPN</item>
+    </string-array>
+    <string-array name="leak_protection_modes_value">
+        <item>Disabled</item>
+        <item>Block</item>
+        <item>Direct</item>
+    </string-array>
     <string-array name="qtype">
         <item>A</item>
         <item>AAAA</item>
