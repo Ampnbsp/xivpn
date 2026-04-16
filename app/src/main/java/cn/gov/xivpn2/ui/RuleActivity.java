@@ -16,7 +16,6 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -27,8 +26,6 @@ import java.util.List;
 import java.util.Objects;
 
 import cn.gov.xivpn2.R;
-import cn.gov.xivpn2.database.AppDatabase;
-import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.Rules;
 import cn.gov.xivpn2.service.XiVPNService;
 import cn.gov.xivpn2.xrayconfig.RoutingRule;
@@ -44,19 +41,26 @@ public class RuleActivity extends AppCompatActivity {
     private TextInputEditText protocols;
     private AutoCompleteTextView network;
     private AutoCompleteTextView outbound;
-    private TextInputLayout outboundLayout;
     private AutoCompleteTextView apps;
 
-    private List<Proxy> proxies;
     private int index = 0;
 
     private ActivityResultLauncher<Intent> appSelectLauncher;
+    private ActivityResultLauncher<Intent> proxySelectLauncher;
 
     private void updateAppsButtonText() {
         if (rule.process != null && !rule.process.isEmpty()) {
             apps.setText(getString(R.string.applications) + " (" + rule.process.size() + ")");
         } else {
             apps.setText(R.string.applications);
+        }
+    }
+
+    private void updateOutboundButtonText() {
+        if (rule.outboundSubscription.equals("none")) {
+            outbound.setText(rule.outboundLabel);
+        } else {
+            outbound.setText(rule.outboundSubscription + " | " + rule.outboundLabel);
         }
     }
 
@@ -76,7 +80,7 @@ public class RuleActivity extends AppCompatActivity {
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        // register activity result launcher
+        // register app select launcher
         appSelectLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -84,6 +88,22 @@ public class RuleActivity extends AppCompatActivity {
                         ArrayList<String> selectedApps = result.getData().getStringArrayListExtra("SELECTED_APPS");
                         rule.process = Objects.requireNonNullElseGet(selectedApps, ArrayList::new);
                         updateAppsButtonText();
+                    }
+                }
+        );
+
+        // register proxy select launcher (single mode)
+        proxySelectLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        String selectedLabel = result.getData().getStringExtra(ProxySelectActivity.RESULT_LABEL);
+                        String selectedSubscription = result.getData().getStringExtra(ProxySelectActivity.RESULT_SUBSCRIPTION);
+                        if (selectedLabel != null && selectedSubscription != null) {
+                            rule.outboundLabel = selectedLabel;
+                            rule.outboundSubscription = selectedSubscription;
+                            updateOutboundButtonText();
+                        }
                     }
                 }
         );
@@ -97,7 +117,6 @@ public class RuleActivity extends AppCompatActivity {
         protocols = findViewById(R.id.edit_protocols);
         network = findViewById(R.id.edit_network);
         outbound = findViewById(R.id.edit_out);
-        outboundLayout = findViewById(R.id.layout_out);
         apps = findViewById(R.id.edit_apps);
 
         // app select button
@@ -109,6 +128,11 @@ public class RuleActivity extends AppCompatActivity {
             appSelectLauncher.launch(intent);
         });
 
+        // outbound select button
+        outbound.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ProxySelectActivity.class);
+            proxySelectLauncher.launch(intent);
+        });
 
         // load rule
         index = getIntent().getIntExtra("INDEX", -1);
@@ -145,37 +169,10 @@ public class RuleActivity extends AppCompatActivity {
             inbound.setText((rule.inboundTag == null || rule.inboundTag.isEmpty()) ? "" : rule.inboundTag.get(0));
 
             updateAppsButtonText();
+            updateOutboundButtonText();
 
             network.setAdapter(new NonFilterableArrayAdapter(this, R.layout.list_item, List.of("tcp", "udp", "tcp,udp")));
             network.setText(rule.network);
-
-            // outbound selector
-            proxies = AppDatabase.getInstance().proxyDao().findAll();
-
-            String selected = "";
-
-            // fetch all proxies
-            ArrayList<String> selections = new ArrayList<>();
-            for (Proxy proxy : proxies) {
-                String s = "";
-                if (proxy.subscription.equals("none")) {
-                    s = proxy.label;
-                } else {
-                    s = proxy.subscription + " | " + proxy.label;
-                }
-                if (rule.outboundLabel.equals(proxy.label) && rule.outboundSubscription.equals(proxy.subscription)) {
-                    selected = s;
-                }
-                selections.add(s);
-            }
-
-            outbound.setAdapter(new NonFilterableArrayAdapter(this, R.layout.list_item, selections));
-            outbound.setOnItemClickListener((parent, view, position, id) -> {
-                rule.outboundSubscription = proxies.get(position).subscription;
-                rule.outboundLabel = proxies.get(position).label;
-            });
-
-            outbound.setText(selected);
 
         } catch (IOException e) {
             Log.wtf("RuleActivity", "read rules", e);
@@ -216,7 +213,8 @@ public class RuleActivity extends AppCompatActivity {
             } else {
                 rule.inboundTag = List.of(inbound.getText().toString());
             }
-            // rule.process is already set by the activity result launcher
+            // rule.outboundLabel / rule.outboundSubscription already updated by proxySelectLauncher
+            // rule.process is already set by the appSelectLauncher
 
             try {
                 List<RoutingRule> rules = Rules.readRules(getFilesDir());

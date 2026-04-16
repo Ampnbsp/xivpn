@@ -1,15 +1,15 @@
 package cn.gov.xivpn2.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
@@ -26,10 +26,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
@@ -37,7 +35,6 @@ import cn.gov.xivpn2.database.Proxy;
 import cn.gov.xivpn2.database.ProxyDao;
 import cn.gov.xivpn2.xrayconfig.Outbound;
 import cn.gov.xivpn2.xrayconfig.LabelSubscription;
-import cn.gov.xivpn2.xrayconfig.ProxyChainSettings;
 import cn.gov.xivpn2.xrayconfig.ProxyGroupSettings;
 
 public class ProxyGroupActivity extends AppCompatActivity {
@@ -47,6 +44,9 @@ public class ProxyGroupActivity extends AppCompatActivity {
     private final ArrayList<LabelSubscription> proxies = new ArrayList<>();
     private String label = "";
     private String subscription = "";
+
+    private ProxyChainAdapter adapter;
+    private ActivityResultLauncher<Intent> proxySelectLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,11 +80,10 @@ public class ProxyGroupActivity extends AppCompatActivity {
         }
 
         // recycler view
-
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
 
-        ProxyChainAdapter adapter = new ProxyChainAdapter();
+        adapter = new ProxyChainAdapter();
         adapter.setListener(new ProxyChainAdapter.OnClickListener() {
             @Override
             public void onClick(int i) {
@@ -117,49 +116,31 @@ public class ProxyGroupActivity extends AppCompatActivity {
             }
         });
         recyclerView.setAdapter(adapter);
-
         adapter.setProxies(proxies);
 
-        // fab
+        // Register the proxy select launcher (multi mode, all protocols allowed)
+        proxySelectLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        ArrayList<String> labels = result.getData().getStringArrayListExtra(ProxySelectActivity.RESULT_LABELS);
+                        ArrayList<String> subscriptions = result.getData().getStringArrayListExtra(ProxySelectActivity.RESULT_SUBSCRIPTIONS);
+                        if (labels == null || subscriptions == null) return;
+                        int insertStart = proxies.size();
+                        for (int i = 0; i < labels.size(); i++) {
+                            proxies.add(new LabelSubscription(labels.get(i), subscriptions.get(i)));
+                        }
+                        adapter.notifyItemRangeInserted(insertStart, labels.size());
+                    }
+                }
+        );
+
+        // fab — open ProxySelectActivity in multi mode
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(v -> {
-            // add new proxy
-            View view = LayoutInflater.from(this).inflate(R.layout.select_proxy, null);
-            AutoCompleteTextView autoCompleteTextView = view.findViewById(R.id.edit_text);
-
-            // find all proxies
-            List<Proxy> proxies = AppDatabase.getInstance().proxyDao().findAll();
-            ArrayList<String> selections = new ArrayList<>();
-            for (Proxy proxy : proxies) {
-                String s = "";
-                if (proxy.subscription.equals("none")) {
-                    s = proxy.label;
-                } else {
-                    s = proxy.subscription + " | " + proxy.label;
-                }
-                selections.add(s);
-            }
-
-            final String[] selected = {"", ""}; // label, subscription
-
-            autoCompleteTextView.setAdapter(new NonFilterableArrayAdapter(this, R.layout.list_item, selections));
-            autoCompleteTextView.setOnItemClickListener((parent, view1, position, id) -> {
-                selected[1] = proxies.get(position).subscription;
-                selected[0] = proxies.get(position).label;
-            });
-
-            new AlertDialog.Builder(this)
-                    .setTitle(R.string.select_proxy)
-                    .setView(view)
-                    .setPositiveButton(R.string.add, (dialog, which) -> {
-                        if (selected[0].isEmpty() && selected[1].isEmpty()) return;
-
-                        // add proxy to proxy chain
-                        LabelSubscription pc = new LabelSubscription(selected[0], selected[1]);
-                        this.proxies.add(pc);
-                        adapter.notifyItemInserted(this.proxies.size() - 1);
-                    })
-                    .show();
+            Intent intent = new Intent(this, ProxySelectActivity.class);
+            intent.putExtra(ProxySelectActivity.EXTRA_MULTI, true);
+            proxySelectLauncher.launch(intent);
         });
     }
 

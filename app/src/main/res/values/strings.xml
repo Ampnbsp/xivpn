@@ -164,6 +164,8 @@
     <string name="download_success">Downloaded successfully</string>
     <string name="leak_protection">Leak protection</string>
     <string name="leak_protection_summary">Prevent apps excluded by Split Tunnel or apps from different profiles to bind to the VPN interface. (Requires Android 10+, experimental)</string>
+    <string name="select_all">Select all</string>
+    <string name="none_subscription">None</string>
     <string name="donation">Donation</string>
     <string name="donation_summary">I am a broke college student. Please donate to me &#x2764;&#xfe0f;</string>
     <string name="wallet_address">Wallet Address</string>
