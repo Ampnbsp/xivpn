@@ -24,17 +24,18 @@ public class GeoDownloaderWork extends Worker {
 
     private final static String TAG = "GeoDownloadWork";
 
-    private boolean interuppted = false;
+    private boolean interrupted = false;
 
     public GeoDownloaderWork(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
     }
 
-
     @NonNull
     @Override
     public Result doWork() {
         Log.i(TAG, "do work");
+
+        interrupted = false;
 
         Data inputData = getInputData();
         String url = inputData.getString("URL");
@@ -79,7 +80,9 @@ public class GeoDownloaderWork extends Worker {
 
             long lastUpdateProgress = 0;
             int length = 0;
-            while (!interuppted) {
+            while (true) {
+                if (interrupted) throw new InterruptedException("download cancelled");
+
                 InputStream inputStream = response.body().byteStream();
                 int n = inputStream.read(buffer);
                 if (n <= 0) break;
@@ -103,12 +106,10 @@ public class GeoDownloaderWork extends Worker {
 
             response.close();
 
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             Log.e(TAG, "download error", e);
 
             return Result.failure(new Data.Builder().putString("error", e.getClass().getSimpleName() + ": " + e.getMessage()).build());
-        } catch (InterruptedException e) {
-            // ignored
         }
 
         return Result.success();
@@ -116,7 +117,7 @@ public class GeoDownloaderWork extends Worker {
 
     @Override
     public void onStopped() {
-        interuppted = true;
+        interrupted = true;
         super.onStopped();
     }
 }

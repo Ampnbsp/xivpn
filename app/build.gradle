@@ -10,8 +10,8 @@ android {
         applicationId "io.github.exclude0122.xivpn"
         minSdk 28
         targetSdk 36
-        versionCode 45
-        versionName "1.9.2"
+        versionCode 46
+        versionName "1.10.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

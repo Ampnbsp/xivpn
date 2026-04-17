@@ -1,0 +1,4 @@
+- add routing by app
+- add vpn leak protection
+- update proxy selector ui
+- update geo database download ui
