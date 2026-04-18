@@ -86,6 +86,9 @@ public class GeoAssetsActivity extends AppCompatActivity {
                             case 6:
                                 url = "https://github.com/Exclude0122/geoip/releases/latest/download/geoip-only-kp-private.dat";
                                 break;
+                            case 7:
+                                url = "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat";
+                                break;
                         }
                         startDownload(url, "geoip.dat");
                     })
