@@ -1,5 +1,6 @@
 package cn.gov.xivpn2.database;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
@@ -20,4 +21,6 @@ public class Subscription {
     public String url;
     @Expose
     public int autoUpdate;
+    @Expose
+    public String type;
 }

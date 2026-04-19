@@ -7,10 +7,14 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.room.Room;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
+import androidx.work.impl.Migration_16_17;
 
 import org.apache.commons.io.FileUtils;
 
@@ -63,6 +67,13 @@ public class MyApplication extends Application {
                     // Log.d("ROOM", s + list);
                 }, Executors.newSingleThreadExecutor())
                 .allowMainThreadQueries()
+                .addMigrations(new Migration(1, 2) {
+                    @Override
+                    public void migrate(@NonNull SupportSQLiteDatabase db) {
+                        db.execSQL("ALTER TABLE subscription ADD COLUMN type TEXT;");
+                        db.execSQL("UPDATE subscription SET type = 'v2rayng';");
+                    }
+                })
                 .build();
         AppDatabase.setInstance(db);
 

@@ -93,6 +93,10 @@ public class ProxiesAdapter extends RecyclerView.Adapter<ProxiesAdapter.ViewHold
             holder.getEdit().setVisibility(View.GONE);
             holder.getShare().setVisibility(View.GONE);
             holder.getDelete().setVisibility(View.GONE);
+        } else if (proxy.protocol.equals("xray-json")) {
+            holder.getEdit().setVisibility(View.GONE);
+            holder.getShare().setVisibility(View.GONE);
+            holder.getDelete().setVisibility(View.VISIBLE);
         } else {
             holder.getEdit().setVisibility(View.VISIBLE);
             holder.getShare().setVisibility(View.VISIBLE);

@@ -53,6 +53,7 @@ public class SubscriptionsAdapter extends RecyclerView.Adapter<SubscriptionsAdap
                 onClickListener.accept(subscriptions.get(position));
             }
         });
+        holder.type.setText(subscriptions.get(position).type);
     }
 
     @Override
@@ -63,11 +64,13 @@ public class SubscriptionsAdapter extends RecyclerView.Adapter<SubscriptionsAdap
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView label;
         public MaterialCardView cardView;
+        public TextView type;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             label = itemView.findViewById(R.id.label);
             cardView = itemView.findViewById(R.id.card);
+            type = itemView.findViewById(R.id.type);
         }
     }
 }

@@ -32,6 +32,9 @@ import androidx.preference.PreferenceManager;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.ToNumberPolicy;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
@@ -349,11 +352,11 @@ public class XiVPNService extends VpnService implements SocketProtect {
 
     private boolean startLibxi() {
         // start libxivpn
-        Config config;
+        JsonObject config;
 
         try {
             config = buildXrayConfig();
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | IOException e) {
             Log.e(TAG, "build xray config", e);
             sendMessage("Error: Could not build xray config: " + e.getClass().getName() + ": " + e.getMessage());
             return false;
@@ -712,7 +715,9 @@ public class XiVPNService extends VpnService implements SocketProtect {
         return resolveProxyGroup(found.label, found.subscription, visited);
     }
 
-    private Config buildXrayConfig() {
+    private JsonObject buildXrayConfig() throws IOException {
+        Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+
         Config config = new Config();
         config.inbounds = new ArrayList<>();
         config.outbounds = new ArrayList<>();
@@ -821,7 +826,6 @@ public class XiVPNService extends VpnService implements SocketProtect {
                 rule.label = null;
             }
 
-            Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
             // catch all
             SharedPreferences sp = getSharedPreferences("XIVPN", Context.MODE_PRIVATE);
@@ -835,6 +839,7 @@ public class XiVPNService extends VpnService implements SocketProtect {
             proxyIdsList.add(0, catchAll.id);
 
             // outbounds
+            int idx = 0;
             for (Long id : proxyIdsList) {
                 Proxy proxy = AppDatabase.getInstance().proxyDao().findById(id);
 
@@ -891,18 +896,60 @@ public class XiVPNService extends VpnService implements SocketProtect {
                     }
 
 
+                } else if (proxy.protocol.equals("xray-json")) {
+
+                    if (idx != 0) throw new IllegalStateException(getString(R.string.xray_json_must_catch_all));
+
                 } else {
                     Outbound<?> outbound = gson.fromJson(proxy.config, Outbound.class);
                     outbound.tag = tag;
                     config.outbounds.add(outbound);
                 }
 
+                idx++;
             }
+
+            JsonObject configJsonObject = gson.toJsonTree(config).getAsJsonObject();
+
+            // merge xray json
+            if (catchAll.protocol.equals("xray-json")) {
+                JsonObject xrayJson = gson.fromJson(catchAll.config, JsonObject.class);
+
+                JsonArray xOutbounds = xrayJson.getAsJsonArray("outbounds");
+
+                // insert xray-json outbounds before other outbounds
+                JsonArray newOutbounds = new JsonArray();
+                newOutbounds.addAll(xOutbounds);
+                newOutbounds.addAll(configJsonObject.getAsJsonArray("outbounds"));
+                configJsonObject.remove("outbounds");
+                configJsonObject.add("outbounds", newOutbounds);
+
+                // overwrite routing
+                if (xrayJson.getAsJsonObject("routing") != null) {
+                    JsonObject xRouting = xrayJson.getAsJsonObject("routing");
+                    if (!xRouting.has("rules")) {
+                        xRouting.add("rules", new JsonArray());
+                    }
+
+                    // user defined rules come before xray-json rules
+                    JsonArray newRules = new JsonArray();
+                    newRules.addAll(configJsonObject.getAsJsonObject("routing").getAsJsonArray("rules"));
+                    newRules.addAll(xRouting.getAsJsonArray("rules"));
+                    xRouting.remove("rules");
+                    xRouting.add("rules", newRules);
+
+                    // overwrite routing with xray-json routing
+                    configJsonObject.remove("routing");
+                    configJsonObject.add("routing", xRouting);
+                }
+            }
+
+
+            return configJsonObject;
         } catch (IOException e) {
             Log.wtf(TAG, "build xray config", e);
+            throw e;
         }
-
-        return config;
     }
 
     @Override

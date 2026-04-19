@@ -18,6 +18,10 @@ import androidx.work.ForegroundInfo;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -85,6 +89,7 @@ public class SubscriptionWork extends Worker {
         OkHttpClient client = builder.build();
         for (Subscription subscription : AppDatabase.getInstance().subscriptionDao().findAll()) {
 
+
             // update subscription
 
             Log.i(TAG, "begin update: " + subscription.label + ", " + subscription.url);
@@ -107,7 +112,14 @@ public class SubscriptionWork extends Worker {
                 // parse subscription and add proxies
                 statusCode = response.code();
                 body = response.body().string();
-                parse(body, subscription.label);
+
+                if ("v2rayng".equals(subscription.type)) {
+                    parseV2rayng(body, subscription.label);
+                } else if ("xray-json".equals(subscription.type)) {
+                    parseXrayJson(body, subscription.label);
+                } else {
+                    throw new IllegalArgumentException("unknown subscription type: " + subscription.type);
+                }
 
                 Notification notification = new Notification.Builder(getApplicationContext(), "XiVPNSubscriptions")
                         .setContentTitle(getApplicationContext().getString(R.string.subscription_updated) + subscription.label)
@@ -181,11 +193,48 @@ public class SubscriptionWork extends Worker {
     }
 
     /**
+     * Import proxies from xray json subscription
+     */
+    public void parseXrayJson(String text, String subscription) {
+        Gson gson = new Gson();
+
+        JsonArray jsonArray = gson.fromJson(text, JsonArray.class);
+
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
+
+            String remarks = "";
+            if (jsonObject.has("remarks") && !jsonObject.get("remarks").isJsonNull() && jsonObject.get("remarks").isJsonPrimitive()) {
+                remarks = jsonObject.get("remarks").getAsString();
+            }
+            if (remarks == null || remarks.isBlank()) remarks = "Configuration " + i;
+            jsonObject.remove("remarks");
+
+            Proxy proxy = new Proxy();
+            proxy.protocol = "xray-json";
+            proxy.subscription = subscription;
+            proxy.config = gson.toJson(jsonObject);
+            proxy.label = remarks;
+
+            String baseLabel = proxy.label;
+
+            int n = 2;
+            while (AppDatabase.getInstance().proxyDao().find(proxy.label, proxy.subscription) != null) {
+                // add number to label if already exists
+                proxy.label = baseLabel + " " + n;
+                n++;
+            }
+
+            AppDatabase.getInstance().proxyDao().add(proxy);
+        }
+    }
+
+    /**
      * Parse subscription text and add proxies
      *
      * @param text base64 encoded, one line per proxy
      */
-    public static void parse(String text, String label) {
+    public static void parseV2rayng(String text, String label) {
         // decode base64
         String textDecoded = new String(Base64.decode(text, Base64.DEFAULT), StandardCharsets.UTF_8);
 
@@ -213,12 +262,6 @@ public class SubscriptionWork extends Worker {
 
         int n = 2;
         String baseLabel = proxy.label;
-
-        if (proxy.label.matches("[\\s\\S]* \\d+$")) {
-            int splitAt = proxy.label.lastIndexOf(" ");
-            n = Integer.parseInt(proxy.label.substring(splitAt + 1)) + 1;
-            baseLabel = proxy.label.substring(0, splitAt);
-        }
 
         while (AppDatabase.getInstance().proxyDao().find(proxy.label, proxy.subscription) != null) {
             // add number to label if already exists

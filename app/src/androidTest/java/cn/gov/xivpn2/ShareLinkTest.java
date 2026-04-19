@@ -45,7 +45,7 @@ public class ShareLinkTest {
         // add subscription
         String subscription = Secret.SUBSCRIPTION_URL;
         Response response1 = httpClient.newCall(new Request.Builder().url(subscription).build()).execute();
-        SubscriptionWork.parse(response1.body().string(), "unittest");
+        SubscriptionWork.parseV2rayng(response1.body().string(), "unittest");
         response1.close();
 
         // list all proxies

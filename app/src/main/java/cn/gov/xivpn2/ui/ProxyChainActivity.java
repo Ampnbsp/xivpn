@@ -25,6 +25,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
@@ -131,9 +132,7 @@ public class ProxyChainActivity extends AppCompatActivity {
         fab.setOnClickListener(v -> {
             Intent intent = new Intent(this, ProxySelectActivity.class);
             intent.putExtra(ProxySelectActivity.EXTRA_MULTI, false);
-            ArrayList<String> excludeProtocols = new ArrayList<>();
-            excludeProtocols.add("proxy-chain");
-            intent.putStringArrayListExtra(ProxySelectActivity.EXTRA_EXCLUDE_PROTOCOLS, excludeProtocols);
+            intent.putStringArrayListExtra(ProxySelectActivity.EXTRA_EXCLUDE_PROTOCOLS, new ArrayList<>(List.of("proxy-chain", "xray-json")));
             proxySelectLauncher.launch(intent);
         });
     }

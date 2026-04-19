@@ -3,7 +3,7 @@ package cn.gov.xivpn2.database;
 import androidx.room.Database;
 import androidx.room.RoomDatabase;
 
-@Database(entities = {Proxy.class, Subscription.class}, version = 1, exportSchema = false)
+@Database(entities = {Proxy.class, Subscription.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     private static AppDatabase instance;
 

@@ -118,7 +118,7 @@ public class ProxyGroupActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
         adapter.setProxies(proxies);
 
-        // Register the proxy select launcher (multi mode, all protocols allowed)
+        // Register the proxy select launcher
         proxySelectLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -135,11 +135,12 @@ public class ProxyGroupActivity extends AppCompatActivity {
                 }
         );
 
-        // fab — open ProxySelectActivity in multi mode
+        // fab
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(v -> {
             Intent intent = new Intent(this, ProxySelectActivity.class);
             intent.putExtra(ProxySelectActivity.EXTRA_MULTI, true);
+            intent.putStringArrayListExtra(ProxySelectActivity.EXTRA_EXCLUDE_PROTOCOLS, new ArrayList<>(List.of("xray-json")));
             proxySelectLauncher.launch(intent);
         });
     }

@@ -131,6 +131,7 @@ public class RuleActivity extends AppCompatActivity {
         // outbound select button
         outbound.setOnClickListener(v -> {
             Intent intent = new Intent(this, ProxySelectActivity.class);
+            intent.putStringArrayListExtra(ProxySelectActivity.EXTRA_EXCLUDE_PROTOCOLS, new ArrayList<>(List.of("xray-json")));
             proxySelectLauncher.launch(intent);
         });
 

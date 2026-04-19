@@ -1,15 +1,19 @@
 package cn.gov.xivpn2.ui;
 
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -25,6 +29,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 
 import cn.gov.xivpn2.R;
 import cn.gov.xivpn2.database.AppDatabase;
@@ -34,7 +40,6 @@ import cn.gov.xivpn2.service.SubscriptionWork;
 
 public class SubscriptionsActivity extends AppCompatActivity {
 
-    private RecyclerView recyclerView;
     private SubscriptionsAdapter adapter;
 
     @Override
@@ -51,12 +56,14 @@ public class SubscriptionsActivity extends AppCompatActivity {
             return insets;
         });
 
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle(R.string.subscriptions);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(R.string.subscriptions);
+        }
 
         // recycler view
 
-        recyclerView = findViewById(R.id.recycler_view);
+        RecyclerView recyclerView = findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new SubscriptionsAdapter();
@@ -71,12 +78,16 @@ public class SubscriptionsActivity extends AppCompatActivity {
             View view = LayoutInflater.from(this).inflate(R.layout.add_subscription, null);
             TextInputEditText labelEditText = view.findViewById(R.id.label);
             TextInputEditText urlEditText = view.findViewById(R.id.url);
+            AutoCompleteTextView type = view.findViewById(R.id.type);
 
-            new MaterialAlertDialogBuilder(this)
+            type.setAdapter(new NonFilterableArrayAdapter(this, R.layout.list_item, List.of(getResources().getStringArray(R.array.subscription_types))));
+            type.setText(getResources().getStringArray(R.array.subscription_types)[0]);
+
+            new AlertDialog.Builder(this)
                     .setTitle(R.string.subscription)
                     .setView(view)
-                    .setPositiveButton(getString(R.string.ok), (dialog, which) -> {
-                        if (labelEditText.getText().toString().isEmpty() || urlEditText.getText().toString().isEmpty()) {
+                    .setPositiveButton(getString(R.string.add), (dialog, which) -> {
+                        if (Objects.requireNonNull(labelEditText.getText()).toString().isEmpty() || Objects.requireNonNull(urlEditText.getText()).toString().isEmpty()) {
                             Toast.makeText(this, getString(R.string.empty_label_or_url), Toast.LENGTH_SHORT).show();
                             return;
                         }
@@ -90,9 +101,23 @@ public class SubscriptionsActivity extends AppCompatActivity {
                         subscription.label = labelEditText.getText().toString();
                         subscription.url = urlEditText.getText().toString();
                         subscription.autoUpdate = 180;
+                        subscription.type = type.getText().toString().equals(getResources().getStringArray(R.array.subscription_types)[0]) ? "v2rayng" : "xray-json";
                         AppDatabase.getInstance().subscriptionDao().insert(subscription);
 
                         refresh();
+
+                        // show xray-json warning
+                        SharedPreferences sp = getSharedPreferences("XIVPN", MODE_PRIVATE);
+                        if (subscription.type.equals("xray-json") && sp.getBoolean("XRAY_JSON_SUBSCRIPTION_WARNING", true)) {
+                            new AlertDialog.Builder(this)
+                                    .setTitle(R.string.warning)
+                                    .setMessage(R.string.xray_json_subscription_warning)
+                                    .setPositiveButton(R.string.ok, null)
+                                    .setNeutralButton(R.string.dont_show_again, (dialog1, which1) -> {
+                                        sp.edit().putBoolean("XRAY_JSON_SUBSCRIPTION_WARNING", false).apply();
+                                    })
+                                    .show();
+                        }
                     })
                     .show();
         });
