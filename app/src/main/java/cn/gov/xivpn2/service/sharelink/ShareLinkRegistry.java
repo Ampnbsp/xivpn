@@ -13,7 +13,7 @@ public class ShareLinkRegistry {
     private static final VMessShareLinkParser vmess = new VMessShareLinkParser();
     private static final VLessShareLinkParser vless = new VLessShareLinkParser();
     private static final ShadowsocksShareLinkParser shadowsocks = new ShadowsocksShareLinkParser();
-
+    private static final TrojanShareLinkParser trojan = new TrojanShareLinkParser();
 
     /**
      * Parse a share link URI into a Proxy.
@@ -37,6 +37,8 @@ public class ShareLinkRegistry {
             return vless.parse(uri);
         } else if (uri.startsWith("ss://")) {
             return shadowsocks.parse(uri);
+        } else if (uri.startsWith("trojan://")) {
+            return trojan.parse(uri);
         }
 
         try {
@@ -64,6 +66,8 @@ public class ShareLinkRegistry {
             return vless.marshal(proxy);
         } else if ("shadowsocks".equals(proxy.protocol)) {
             return shadowsocks.marshal(proxy);
+        } else if ("trojan://".equals(proxy.protocol)) {
+            return trojan.marshal(proxy);
         }
         throw new MarshalProxyException("unsupported proxy protocol: " + proxy.protocol);
     }
